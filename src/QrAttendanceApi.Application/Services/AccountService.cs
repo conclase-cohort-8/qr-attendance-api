@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using QrAttendanceApi.Application.Abstractions;
@@ -10,6 +13,7 @@ using QrAttendanceApi.Application.Services.Abstractions;
 using QrAttendanceApi.Application.Settings;
 using QrAttendanceApi.Application.Validations;
 using QrAttendanceApi.Domain.Entities;
+using QrAttendanceApi.Domain.Enums;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -19,6 +23,8 @@ namespace QrAttendanceApi.Application.Services
 {
     public class AccountService : IAccountService
     {
+        private readonly List<string> allowedFileType = new List<string> { ".xls", ".xlsx" };
+        private const long maxDocSize = 5120000;
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
         private readonly IRepositoryManager _repository;
@@ -142,7 +148,106 @@ namespace QrAttendanceApi.Application.Services
             return new OkResponse<TokenDto>(new TokenDto(newAccessToken, command.RefreshToken));
         }
 
+        public async Task<ApiBaseResponse> LoadUserDataAsync(IFormFile file)
+        {
+            var validationResult = ValidateFile(file);
+            if (!validationResult.Success)
+            {
+                return validationResult;
+            }
+
+            //var uploadDirectory = Path.Combine(Directory.GetCurrentDirectory(), "upload");
+            //if (!Directory.Exists(uploadDirectory))
+            //{
+            //    Directory.CreateDirectory(uploadDirectory);
+            //}
+
+            //var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            //var filePath = Path.Combine(uploadDirectory, Guid.NewGuid() + fileExtension);
+            using var stream = file.OpenReadStream();
+
+            //await file.CopyToAsync(stream);
+
+            var users = await LoadUsers(stream);
+            //if (File.Exists(filePath))
+            //{
+            //    File.Delete(filePath);
+            //}
+            return new OkResponse<List<User>>(users);
+        }
+
         #region Private Methods
+        private async Task<List<User>> LoadUsers(Stream stream)
+        {
+            //var bytes = File.ReadAllBytes(filePath);
+            //using var stream = new MemoryStream(bytes);
+            if(stream.Length <= 0)
+            {
+                return [];
+            }
+
+            using var workbook = new XLWorkbook(stream);
+            var sheet = workbook.Worksheets.FirstOrDefault() ??
+                throw new InvalidOperationException();
+
+            var departments = await _repository.Department
+                .GetAll();
+
+            var users = new List<User>();
+            foreach(var row in sheet.RowsUsed().Skip(1))
+            {
+                var roleString = row.Cell(6).GetString();
+                if(Enum.TryParse<Roles>(roleString, true, out var @role) || !Enum.IsDefined(typeof(Roles), @role))
+                {
+                    @role = Roles.Student;
+                }
+
+                var dept = row.Cell(7).GetString();
+                var department = departments
+                    .Where(d => d.Name.ToLower().Equals(dept.ToLower())).FirstOrDefault();
+                if(department != null)
+                {
+                    var payload = new RegisterCommand
+                    {
+                        FullName = row.Cell(1).GetString(),
+                        Email = row.Cell(2).GetString(),
+                        PhoneNumber = string.Concat("+", row.Cell(3).GetString()),
+                        Password = row.Cell(4).GetString(),
+                        ComfirmPassword = row.Cell(5).GetString(),
+                        Role = @role,
+                        DepartmentId = department.Id
+                    };
+
+                    var validator = new RegisterCommandValidator().Validate(payload);
+                    if (validator.IsValid)
+                    {
+                        users.Add(RegisterCommand.MapUser(payload));
+                    }
+                }
+            }
+
+            return users;
+        }
+
+        private ApiBaseResponse ValidateFile(IFormFile file)
+        {
+            if (file is null || file.Length <= 0)
+            {
+                return new BadRequestResponse("Please upload a file.");
+            }
+
+            if (!allowedFileType.Any(f => file.FileName.EndsWith(f)))
+            {
+                return new BadRequestResponse("Please selected a valid file type");
+            }
+
+            if (file.Length > maxDocSize)
+            {
+                return new BadRequestResponse("File too large. Maximum size is 5mb");
+            }
+
+            return new OkResponse<string>("File is valid");
+        }
         private List<Claim> GetClaims(User user, string[] roles)
         {
             var claims = new List<Claim>

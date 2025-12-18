@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using QrAttendanceApi.Application.Commands.Accounts;
 using QrAttendanceApi.Application.DTOs;
 using QrAttendanceApi.Application.Services.Abstractions;
 using QrAttendanceApi.Core.Controllers.Extensions;
+using QrAttendanceApi.Domain.Entities;
 
 namespace QrAttendanceApi.Core.Controllers.V1
 {
@@ -70,6 +72,20 @@ namespace QrAttendanceApi.Core.Controllers.V1
             }
 
             return Ok(response.GetResult<TokenDto>());
+        }
+
+        [HttpPost]
+        //[Authorize(Roles = "Admin, SuperAdmin")]
+        [ProducesResponseType(typeof(string), 200)]
+        public async Task<IActionResult> DataLoad(IFormFile file)
+        {
+            var response = await _service.Account.LoadUserDataAsync(file);
+            if (!response.Success)
+            {
+                return ProcessError(response);
+            }
+
+            return Ok(response.GetResult<List<User>>());
         }
     }
 }
