@@ -7,7 +7,7 @@
         public OkResponse(T data)
             : base(true, 200)
         {
-            
+            Data = data;
         }
     }
 }

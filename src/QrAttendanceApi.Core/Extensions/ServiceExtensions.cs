@@ -2,9 +2,20 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QrAttendanceApi.Application.Abstractions;
+using QrAttendanceApi.Application.Services;
+using QrAttendanceApi.Application.Services.Abstractions;
+using QrAttendanceApi.Application.Settings;
 using QrAttendanceApi.Domain.Entities;
 using QrAttendanceApi.Infrastructure.Persistence;
+using QrAttendanceApi.Infrastructure.Repositories;
+using Serilog;
+using Serilog.Events;
+using Serilog.Sinks.Elasticsearch;
+using System.Text;
 
 namespace QrAttendanceApi.Core.Extensions
 {
@@ -16,7 +27,35 @@ namespace QrAttendanceApi.Core.Extensions
             services.AddEndpointsApiExplorer()
                 .ConfigureSwaggerGen()
                 .ConfigureDbContext(configuration)
-                .ConfigureVersioning();
+                .ConfigureVersioning()
+                .ConfigureServices()
+                .ConfigureJwt(configuration);
+        }
+
+        public static IServiceCollection ConfigureServices(this IServiceCollection services)
+        {
+            return services.AddScoped<IServiceManager, ServiceManager>()
+                .AddScoped<IRepositoryManager, RepositoryManager>();
+        }
+
+        public static void ConfigireSerilogEsSink(this IHostBuilder host, IConfiguration configuration)
+        {
+            var url = configuration["ElasticSearch:Url"] ?? throw new ArgumentNullException(nameof(ElasticsearchSettings));
+
+            host.UseSerilog((context, services, configuration) =>
+            {
+                var env = context.HostingEnvironment;
+                var appName = env.ApplicationName;
+                var indexFormat = $"{appName?.ToLower().Replace(".", "-")}-{env.EnvironmentName.ToLower()}";
+
+                configuration
+                    .Enrich.FromLogContext()
+                    .Enrich.WithProperty("Environment", env.EnvironmentName)
+                    .Enrich.WithProperty("Service", appName)
+                    .MinimumLevel.Information()
+                    .WriteTo.Console(restrictedToMinimumLevel: LogEventLevel.Information)
+                    .WriteTo.Elasticsearch(ConfigureElasticSink(url, indexFormat));
+            });
         }
 
         private static IServiceCollection ConfigureDbContext(this IServiceCollection services, IConfiguration configuration)
@@ -27,7 +66,7 @@ namespace QrAttendanceApi.Core.Extensions
             services.AddDbContext<AppDbContext>(opt => 
                 opt.UseNpgsql(connectionString, m => m.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)));
 
-            services.AddIdentity<ApplicationUser, IdentityRole>(opt =>
+            services.AddIdentity<User, IdentityRole>(opt =>
             {
                 opt.Password.RequireNonAlphanumeric = true;
                 opt.Password.RequireDigit = true;
@@ -95,9 +134,9 @@ namespace QrAttendanceApi.Core.Extensions
 
                 opt.SwaggerDoc("v1", new OpenApiInfo
                 {
-                    Title = "QR Attendance API",
+                    Title = "Smart Attendance System API",
                     Version = "v1",
-                    Description = "QR Attendance API v1.0",
+                    Description = "Smart Attendance System API v1.0",
                     Contact = new OpenApiContact
                     {
                         Name = "Conclase .NET Cohort 8",
@@ -107,7 +146,7 @@ namespace QrAttendanceApi.Core.Extensions
 
                 opt.SwaggerDoc("v2", new OpenApiInfo
                 {
-                    Title = "QR Attendance API",
+                    Title = "Smart Attendance System API",
                     Version = "v2",
                     Description = "QR Attendance API v2.0",
                     Contact = new OpenApiContact
@@ -117,6 +156,51 @@ namespace QrAttendanceApi.Core.Extensions
                     }
                 });
             });
+
+            return services;
+        }
+
+        private static ElasticsearchSinkOptions ConfigureElasticSink(string elasticSearchUrl, string indexFormat)
+        {
+            return new ElasticsearchSinkOptions(new Uri(elasticSearchUrl))
+            {
+                AutoRegisterTemplate = false,
+                IndexFormat = indexFormat,
+                NumberOfReplicas = 1,
+                NumberOfShards = 2
+            };
+        }
+
+        private static IServiceCollection ConfigureJwt(this IServiceCollection services, IConfiguration configuration)
+        {
+            var section = configuration.GetSection("Jwt");
+            services.Configure<JwtSettings>(section);
+
+            var settings = section.Get<JwtSettings>() ?? 
+                throw new ArgumentNullException(nameof(section));
+
+            services.AddAuthentication(opt =>
+            {
+                opt.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                opt.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(opt =>
+            {
+                opt.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = settings.Issuer,
+
+                    ValidateAudience = true,
+                    ValidAudience = settings.Audience,
+
+                    ValidateLifetime = true,
+
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.Key))
+                };
+            });
+
+            services.AddAuthorization();
 
             return services;
         }

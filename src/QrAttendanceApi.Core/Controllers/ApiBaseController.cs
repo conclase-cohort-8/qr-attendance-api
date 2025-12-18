@@ -6,7 +6,7 @@ namespace QrAttendanceApi.Core.Controllers
     public class ApiBaseController : ControllerBase
     {
         [ApiExplorerSettings(IgnoreApi = true)]
-        public IActionResult ProessError(ApiBaseResponse response)
+        public IActionResult ProcessError(ApiBaseResponse response)
         {
             return StatusCode(response.Status, response);
         }

@@ -1,8 +1,8 @@
 ﻿namespace QrAttendanceApi.Application.Responses
 {
-    public class ConflictResonse : ApiBaseResponse
+    public class ConflictResponse : ApiBaseResponse
     {
-        public ConflictResonse(string message)
+        public ConflictResponse(string message)
             : base(false, 409, message)
         {
             
