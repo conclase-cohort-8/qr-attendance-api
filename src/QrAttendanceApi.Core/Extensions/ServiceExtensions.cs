@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Hangfire;
+using Hangfire.Console;
+using Hangfire.PostgreSql;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +31,7 @@ namespace QrAttendanceApi.Core.Extensions
                 .ConfigureDbContext(configuration)
                 .ConfigureVersioning()
                 .ConfigureServices()
+                .ConfigureHangfire(configuration)
                 .ConfigureJwt(configuration);
         }
 
@@ -200,6 +204,40 @@ namespace QrAttendanceApi.Core.Extensions
             });
 
             services.AddAuthorization();
+
+            return services;
+        }
+
+        private static IServiceCollection ConfigureHangfire(this IServiceCollection services,
+                                                           IConfiguration configuration)
+        {
+            services.AddHangfire(config =>
+            {
+                config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                    .UseSimpleAssemblyNameTypeSerializer()
+                    .UseRecommendedSerializerSettings()
+                    .UsePostgreSqlStorage(opt =>
+                    {
+                        opt.UseNpgsqlConnection(configuration.GetConnectionString("Default"));
+                    }, 
+                    new PostgreSqlStorageOptions
+                    {
+                        SchemaName = "smart-attendance-hangfire",
+                        PrepareSchemaIfNecessary = true
+                    })
+                    .UseConsole()
+                    .UseFilter(new AutomaticRetryAttribute()
+                    {
+                        Attempts = 5,
+                        DelayInSecondsByAttemptFunc = _ => 60
+                    });
+            }).AddHangfireServer(opt =>
+            {
+                opt.ServerName = "Smart Attendance Hangfire Server";
+                opt.Queues = new[] { "recurring", "default" };
+                opt.SchedulePollingInterval = TimeSpan.FromMinutes(1);
+                opt.WorkerCount = 5;
+            });
 
             return services;
         }

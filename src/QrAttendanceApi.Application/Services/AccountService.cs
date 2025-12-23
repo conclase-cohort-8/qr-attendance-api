@@ -1,5 +1,7 @@
 ﻿using ClosedXML.Excel;
-using DocumentFormat.OpenXml.Spreadsheet;
+using Hangfire;
+using Hangfire.Console;
+using Hangfire.Server;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
@@ -156,48 +158,61 @@ namespace QrAttendanceApi.Application.Services
                 return validationResult;
             }
 
-            //var uploadDirectory = Path.Combine(Directory.GetCurrentDirectory(), "upload");
-            //if (!Directory.Exists(uploadDirectory))
-            //{
-            //    Directory.CreateDirectory(uploadDirectory);
-            //}
-
-            //var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            //var filePath = Path.Combine(uploadDirectory, Guid.NewGuid() + fileExtension);
-            using var stream = file.OpenReadStream();
-
-            //await file.CopyToAsync(stream);
-
-            var users = await LoadUsers(stream);
-            //if (File.Exists(filePath))
-            //{
-            //    File.Delete(filePath);
-            //}
-            return new OkResponse<List<User>>(users);
-        }
-
-        #region Private Methods
-        private async Task<List<User>> LoadUsers(Stream stream)
-        {
-            //var bytes = File.ReadAllBytes(filePath);
-            //using var stream = new MemoryStream(bytes);
-            if(stream.Length <= 0)
+            var uploadDirectory = Path.Combine(Directory.GetCurrentDirectory(), "upload");
+            if (!Directory.Exists(uploadDirectory))
             {
-                return [];
+                Directory.CreateDirectory(uploadDirectory);
             }
 
+            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            var filePath = Path.Combine(uploadDirectory, Guid.NewGuid() + fileExtension);
+            using var stream = new FileStream(filePath, FileMode.Create);
+            await file.CopyToAsync(stream);
+
+            var jobId = BackgroundJob.Enqueue(() => LoadUsers(filePath, null!));
+            return new OkResponse<string>($"User Bulk upload started. You can monitor the progress from Hangfire dashboard. Job Id: {jobId}");
+        }
+
+        public async Task LoadUsers(string filePath, PerformContext context)
+        {
+            context.WriteLine("[LoadUsers]:  Running user bulk uploads");
+            if (!File.Exists(filePath))
+            {
+                context.WriteLine("[LoadUsers]: File {filePath} not found.");
+                return;
+            }
+
+            var bytes = File.ReadAllBytes(filePath);
+            context.WriteLine($"[LoadUsers]:  Successfully read the file content from path: {filePath}");
+
+            using var stream = new MemoryStream(bytes);
+            if (stream.Length <= 0)
+            {
+                context.WriteLine("[LoadUsers]:  Invalid stream length");
+                return;
+            }
+
+            context.WriteLine("[LoadUsers]:  Loading data from the file...");
             using var workbook = new XLWorkbook(stream);
-            var sheet = workbook.Worksheets.FirstOrDefault() ??
-                throw new InvalidOperationException();
+            var sheet = workbook.Worksheets.FirstOrDefault();
+            if (sheet == null)
+            {
+                context.WriteLine("[LoadUsers]:  No excel sheet found for the file.");
+                return;
+            }
+
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+                context.WriteLine("[LoadUsers]:  File deleted after loading the data.");
+            }
 
             var departments = await _repository.Department
                 .GetAll();
-
-            var users = new List<User>();
-            foreach(var row in sheet.RowsUsed().Skip(1))
+            foreach (var row in sheet.RowsUsed().Skip(1))
             {
                 var roleString = row.Cell(6).GetString();
-                if(Enum.TryParse<Roles>(roleString, true, out var @role) || !Enum.IsDefined(typeof(Roles), @role))
+                if (!Enum.TryParse<Roles>(roleString, true, out var @role) || !Enum.IsDefined(typeof(Roles), @role))
                 {
                     @role = Roles.Student;
                 }
@@ -205,7 +220,8 @@ namespace QrAttendanceApi.Application.Services
                 var dept = row.Cell(7).GetString();
                 var department = departments
                     .Where(d => d.Name.ToLower().Equals(dept.ToLower())).FirstOrDefault();
-                if(department != null)
+
+                if (department != null)
                 {
                     var payload = new RegisterCommand
                     {
@@ -221,14 +237,25 @@ namespace QrAttendanceApi.Application.Services
                     var validator = new RegisterCommandValidator().Validate(payload);
                     if (validator.IsValid)
                     {
-                        users.Add(RegisterCommand.MapUser(payload));
+                        var response = await RegisterAsync(payload);
+                        if (response.Success)
+                        {
+                            context.WriteLine($"User, {payload.FullName} successfully registered!");
+                        }
+                        else
+                        {
+                            context.WriteLine($"Registration failed for {payload.FullName}. Reason: {response.Message}");
+                        }
+                    }
+                    else
+                    {
+                        context.WriteLine($"[LoadUsers]: Invalid input for {payload.Email}!. Validation messages {string.Join(",", validator.Errors.Select(e => e.ErrorMessage))}");
                     }
                 }
             }
-
-            return users;
         }
 
+        #region Private Methods
         private ApiBaseResponse ValidateFile(IFormFile file)
         {
             if (file is null || file.Length <= 0)
