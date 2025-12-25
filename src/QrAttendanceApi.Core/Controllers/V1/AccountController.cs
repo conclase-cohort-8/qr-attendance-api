@@ -74,8 +74,8 @@ namespace QrAttendanceApi.Core.Controllers.V1
             return Ok(response.GetResult<TokenDto>());
         }
 
-        [HttpPost]
-        //[Authorize(Roles = "Admin, SuperAdmin")]
+        [HttpPost("bulk-upload")]
+        [Authorize(Roles = "Admin, SuperAdmin")]
         [ProducesResponseType(typeof(string), 200)]
         public async Task<IActionResult> DataLoad(IFormFile file)
         {
@@ -85,7 +85,7 @@ namespace QrAttendanceApi.Core.Controllers.V1
                 return ProcessError(response);
             }
 
-            return Ok(response.GetResult<List<User>>());
+            return Ok(response.GetResult<string>());
         }
     }
 }
