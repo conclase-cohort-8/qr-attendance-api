@@ -78,6 +78,6 @@ jobs:
           docker push ${{ secrets.HUB_USERNAME }}/smart-attendance-api:${{ steps.get_latest_tag.outputs.tag }}
           docker push ${{ secrets.HUB_USERNAME }}/smart-attendance-api:release
 
-    #   - name: Trigger Automatic Deploy on Render
-    #     run: |
-    #       curl -X POST ${{ secrets.RENDER_HOOK_URL }}
+      - name: Trigger Automatic Deploy on Render
+        run: |
+          curl -X POST ${{ secrets.RENDER_HOOK_URL }}
