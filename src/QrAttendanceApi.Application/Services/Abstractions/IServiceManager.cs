@@ -1,0 +1,8 @@
+﻿namespace QrAttendanceApi.Application.Services.Abstractions
+{
+    public interface IServiceManager
+    {
+        IAccountService Account {  get; }
+        IDepartmentService Department { get; }
+    }
+}
