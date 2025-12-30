@@ -4,6 +4,7 @@ using QrAttendanceApi.Application.Commands.Departments;
 using QrAttendanceApi.Application.DTOs;
 using QrAttendanceApi.Application.Services.Abstractions;
 using QrAttendanceApi.Core.Controllers.Extensions;
+using System.Security.Claims;
 
 namespace QrAttendanceApi.Core.Controllers.V1
 {

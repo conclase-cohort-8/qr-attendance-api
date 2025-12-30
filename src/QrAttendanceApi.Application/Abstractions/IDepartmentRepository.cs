@@ -2,9 +2,7 @@
 
 namespace QrAttendanceApi.Application.Abstractions
 {
-    public interface IDepartmentRepository
+    public interface IDepartmentRepository : IRepository<Department>
     {
-        Task AddAsync(Department department, bool save = true);
-        Task<List<Department>> GetAll();
     }
 }
