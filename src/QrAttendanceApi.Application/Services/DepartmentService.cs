@@ -1,4 +1,5 @@
-﻿using QrAttendanceApi.Application.Abstractions;
+﻿using Microsoft.EntityFrameworkCore;
+using QrAttendanceApi.Application.Abstractions;
 using QrAttendanceApi.Application.Commands.Departments;
 using QrAttendanceApi.Application.DTOs;
 using QrAttendanceApi.Application.Responses;
@@ -29,17 +30,17 @@ namespace QrAttendanceApi.Application.Services
                     Name = command.Name,
                     Description = command.Description,
                 });
-
+            await _repository.SaveAsync();
             return new OkResponse<string>("Department added successfully.");
         }
 
         public async Task<ApiBaseResponse> GetDepartments()
         {
-            var data = (await _repository.Department
-                .GetAll())
-                .Select(DepartmentDto.ToDto).ToList();
+            var data = await _repository.Department
+                .Get(d => !d.IsDeprecated)
+                .ToListAsync();
 
-            return new OkResponse<List<DepartmentDto>>(data);
+            return new OkResponse<List<DepartmentDto>>(data.Select(DepartmentDto.ToDto).ToList());
         }
     }
 }

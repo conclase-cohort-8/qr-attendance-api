@@ -1,6 +1,7 @@
 ﻿using Hangfire;
 using Hangfire.Console;
 using Hangfire.PostgreSql;
+using Mailjet.Client;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Versioning;
@@ -8,10 +9,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QrAttendanceApi.Application.Abstractions;
+using QrAttendanceApi.Application.Abstractions.Externals;
 using QrAttendanceApi.Application.Services;
 using QrAttendanceApi.Application.Services.Abstractions;
 using QrAttendanceApi.Application.Settings;
 using QrAttendanceApi.Domain.Entities;
+using QrAttendanceApi.Infrastructure.ExternalServices;
+using QrAttendanceApi.Infrastructure.ExternalServices.Emails;
+using QrAttendanceApi.Infrastructure.ExternalServices.Uploads;
 using QrAttendanceApi.Infrastructure.Persistence;
 using QrAttendanceApi.Infrastructure.Repositories;
 using Serilog;
@@ -30,15 +35,47 @@ namespace QrAttendanceApi.Core.Extensions
                 .ConfigureSwaggerGen()
                 .ConfigureDbContext(configuration)
                 .ConfigureVersioning()
-                .ConfigureServices()
+                .ConfigureServices(configuration)
                 .ConfigureHangfire(configuration)
-                .ConfigureJwt(configuration);
+                .ConfigureJwt(configuration)
+                .ConfigureCors(configuration);
         }
 
-        public static IServiceCollection ConfigureServices(this IServiceCollection services)
+        public static IServiceCollection ConfigureServices(this IServiceCollection services,
+                                                           IConfiguration configuration)
         {
+            //Mailjet config
+            var mailSection = configuration.GetSection("MailJet");
+            services.Configure<MailJetSettings>(configuration.GetSection("MailJet"));
+            var mailJetSettings = mailSection.Get<MailJetSettings>() ?? throw new ArgumentNullException("MailJetSettings");
+            services.AddHttpClient<IMailjetClient, MailjetClient>(opt =>
+            {
+                opt.UseBasicAuthentication(mailJetSettings.ApiKey, mailJetSettings.ApiSecret);
+            });
+
+            //Cloudinary config
+            services.Configure<CloudinarySettings>(configuration
+                .GetSection("CloudinarySettings"));
+
             return services.AddScoped<IServiceManager, ServiceManager>()
-                .AddScoped<IRepositoryManager, RepositoryManager>();
+                .AddScoped<IRepositoryManager, RepositoryManager>()
+                .AddScoped<IUploadService, UploadService>()
+                .AddScoped<IEmailService, EmailService>()
+                .AddScoped<ITokenService, TokenService>()
+                .AddScoped<IAuditEntry, AuditEntry>();
+        }
+
+        private static IServiceCollection ConfigureCors(this IServiceCollection services, IConfiguration configuration)
+        {
+            return services.AddCors(options =>
+            {
+                options.AddPolicy("CorsPolicy", policy =>
+                {  
+                    policy.AllowAnyOrigin()
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
         }
 
         public static void ConfigireSerilogEsSink(this IHostBuilder host, IConfiguration configuration)

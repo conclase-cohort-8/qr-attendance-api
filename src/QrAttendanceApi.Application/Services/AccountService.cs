@@ -4,9 +4,10 @@ using Hangfire.Console;
 using Hangfire.Server;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using QrAttendanceApi.Application.Abstractions;
+using QrAttendanceApi.Application.Abstractions.Externals;
 using QrAttendanceApi.Application.Commands.Accounts;
 using QrAttendanceApi.Application.DTOs;
 using QrAttendanceApi.Application.Helpers;
@@ -16,10 +17,6 @@ using QrAttendanceApi.Application.Settings;
 using QrAttendanceApi.Application.Validations;
 using QrAttendanceApi.Domain.Entities;
 using QrAttendanceApi.Domain.Enums;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace QrAttendanceApi.Application.Services
 {
@@ -30,16 +27,19 @@ namespace QrAttendanceApi.Application.Services
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
         private readonly IRepositoryManager _repository;
+        private readonly ITokenService _tokenService;
         private readonly JwtSettings _settings;
 
         public AccountService(UserManager<User> userManager,
                               SignInManager<User> signInManager,
                               IOptions<JwtSettings> options,
-                              IRepositoryManager repository)
+                              IRepositoryManager repository,
+                              ITokenService tokenService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _repository = repository;
+            _tokenService = tokenService;
             _settings = options.Value;
         }
 
@@ -89,6 +89,11 @@ namespace QrAttendanceApi.Application.Services
                 return new NotFoundResponse("No user record found for this email address");
             }
 
+            if(!user.IsActive || !user.EmailConfirmed)
+            {
+                return new ForbiddenResponse("You are not allowed to perform this action. Please contact support.");
+            }
+
             var passwordCheck = await _signInManager.CheckPasswordSignInAsync(user, command.Password, lockoutOnFailure: true);
             if (!passwordCheck.Succeeded)
             {
@@ -101,19 +106,10 @@ namespace QrAttendanceApi.Application.Services
                 return new ForbiddenResponse("You can not login at this time");
             }
 
-            var accessToken = CreateAccessToken(user, roles.ToArray());
-            var refreshToken = await CreateAndSaveRefreshToken(user.Id);
+            var accessToken = _tokenService.CreateAccessToken(user, roles.ToArray());
+            var refreshToken = await _tokenService.CreateAndSaveRefreshToken(user.Id);
 
-            return new OkResponse<TokenDto>(new TokenDto(accessToken, refreshToken));
-        }
-
-        private string CreateAccessToken(User user, string[] roles)
-        {
-            var claims = GetClaims(user, roles);
-            var creds = GetSigningCredentials();
-            var token = GetSecurityToken(claims, creds);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            return new OkResponse<LoginTokensDto>(new LoginTokensDto(accessToken, refreshToken));
         }
 
         public async Task<ApiBaseResponse> RefreshAsync(RefreshTokenCommand command)
@@ -123,9 +119,9 @@ namespace QrAttendanceApi.Application.Services
                 return new UnauthorizedResponse("Access denied. Please login");
             }
 
-            var hash = ComputeHash(command.RefreshToken);
+            var hash = _tokenService.ComputeHash(command.RefreshToken);
             var tokenFromDb = await _repository.Token
-                .FindAsync(t => !t.IsDeprecated && t.Hash == hash);
+                .FirstOrDefault(t => !t.IsDeprecated && t.Hash == hash, true);
             if (tokenFromDb == null)
             {
                 return new UnauthorizedResponse("Access denied. Please login");
@@ -134,7 +130,8 @@ namespace QrAttendanceApi.Application.Services
             if(tokenFromDb.ExpiresAt < DateTimeOffset.UtcNow)
             {
                 tokenFromDb.IsDeprecated = true;
-                await _repository.Token.UpdateAsync(tokenFromDb);
+                _repository.Token.Update(tokenFromDb);
+                await _repository.SaveAsync();
 
                 return new UnauthorizedResponse("Access denied. Please login");
             }
@@ -146,8 +143,8 @@ namespace QrAttendanceApi.Application.Services
             }
 
             var roles = await _userManager.GetRolesAsync(user);
-            var newAccessToken = CreateAccessToken(user, roles.ToArray());
-            return new OkResponse<TokenDto>(new TokenDto(newAccessToken, command.RefreshToken));
+            var newAccessToken = _tokenService.CreateAccessToken(user, roles.ToArray());
+            return new OkResponse<LoginTokensDto>(new LoginTokensDto(newAccessToken, command.RefreshToken));
         }
 
         public async Task<ApiBaseResponse> LoadUserDataAsync(IFormFile file)
@@ -208,7 +205,7 @@ namespace QrAttendanceApi.Application.Services
             }
 
             var departments = await _repository.Department
-                .GetAll();
+                .Get(d => !d.IsDeprecated).ToListAsync();
             foreach (var row in sheet.RowsUsed().Skip(1))
             {
                 var roleString = row.Cell(6).GetString();
@@ -240,6 +237,8 @@ namespace QrAttendanceApi.Application.Services
                         var response = await RegisterAsync(payload);
                         if (response.Success)
                         {
+                            //TODO: Send email to the users here informing them of their addition to the system.
+                            //You're expected to send them an email. User the user-addition-email.html template in the wwwroot
                             context.WriteLine($"User, {payload.FullName} successfully registered!");
                         }
                         else
@@ -275,60 +274,6 @@ namespace QrAttendanceApi.Application.Services
 
             return new OkResponse<string>("File is valid");
         }
-        private List<Claim> GetClaims(User user, string[] roles)
-        {
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.UserName!),
-                new Claim(ClaimTypes.NameIdentifier, user.Id),
-            };
-
-            claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
-
-            return claims;
-        }
-
-        private SigningCredentials GetSigningCredentials()
-        {
-            var key = Encoding.UTF8.GetBytes(_settings.Key);
-            var secret = new SymmetricSecurityKey(key);
-            return new SigningCredentials(secret, SecurityAlgorithms.HmacSha256);
-        }
-
-        private JwtSecurityToken GetSecurityToken(List<Claim> claims, SigningCredentials credentials)
-        {
-            return new JwtSecurityToken(
-                issuer: _settings.Issuer,
-                audience: _settings.Audience,
-                claims: claims,
-                notBefore: DateTime.UtcNow,
-                expires: DateTime.UtcNow.AddHours(_settings.Expires),
-                signingCredentials: credentials
-            );
-        }
-
-        private async Task<string> CreateAndSaveRefreshToken(string userId)
-        {
-            var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-            var hash = ComputeHash(token);
-
-            await _repository.Token.AddAsync(new RefreshToken
-            {
-                Hash = hash,
-                UserId = userId,
-                ExpiresAt = DateTimeOffset.UtcNow.Add(TimeSpan.FromDays(_settings.Expires))
-            });
-
-            return token;
-        }
-
-        private string ComputeHash(string token)
-        {
-            using var sha = SHA256.Create();
-            var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(token));
-            return Convert.ToBase64String(bytes);
-        }
-
         #endregion
     }
 }

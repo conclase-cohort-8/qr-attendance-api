@@ -52,28 +52,28 @@ namespace QrAttendanceApi.Infrastructure.Migrations
                         new
                         {
                             Id = "bef477b0-e65d-4c85-a6f3-8b44e89af17e",
-                            ConcurrencyStamp = "12/17/2025 5:44:06 PM",
+                            ConcurrencyStamp = "12/30/2025 3:43:49 AM",
                             Name = "Student",
                             NormalizedName = "STUDENT"
                         },
                         new
                         {
                             Id = "32751251-5533-4004-b248-d8d8ef427ce2",
-                            ConcurrencyStamp = "12/17/2025 5:44:06 PM",
+                            ConcurrencyStamp = "12/30/2025 3:43:49 AM",
                             Name = "Staff",
                             NormalizedName = "STAFF"
                         },
                         new
                         {
                             Id = "504ea7a6-fb72-43a8-8c1e-628bd4ababd1",
-                            ConcurrencyStamp = "12/17/2025 5:44:06 PM",
+                            ConcurrencyStamp = "12/30/2025 3:43:49 AM",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
                             Id = "41de4677-6d68-4854-8262-cbeaa486fe4c",
-                            ConcurrencyStamp = "12/17/2025 5:44:06 PM",
+                            ConcurrencyStamp = "12/30/2025 3:43:49 AM",
                             Name = "SuperAdmin",
                             NormalizedName = "SUPERADMIN"
                         });
@@ -185,6 +185,84 @@ namespace QrAttendanceApi.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", "smart-attendance");
                 });
 
+            modelBuilder.Entity("QrAttendanceApi.Domain.Entities.AttendanceLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeviceInfo")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeprecated")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastUpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("LocationLat")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal?>("LocationLng")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("QrSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QrSessionId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AttendanceLogs", "smart-attendance");
+                });
+
+            modelBuilder.Entity("QrAttendanceApi.Domain.Entities.AuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AuditLogs", "smart-attendance");
+                });
+
             modelBuilder.Entity("QrAttendanceApi.Domain.Entities.Department", b =>
                 {
                     b.Property<Guid>("Id")
@@ -211,6 +289,61 @@ namespace QrAttendanceApi.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Departments", "smart-attendance");
+                });
+
+            modelBuilder.Entity("QrAttendanceApi.Domain.Entities.QrSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedById")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("EndsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeprecated")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastUpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("LateAfter")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RegenerateTokenInSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("varchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.ToTable("QrSessions", "smart-attendance");
                 });
 
             modelBuilder.Entity("QrAttendanceApi.Domain.Entities.RefreshToken", b =>
@@ -300,6 +433,9 @@ namespace QrAttendanceApi.Infrastructure.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("PhotoPublicId")
+                        .HasColumnType("text");
+
                     b.Property<string>("PhotoUrl")
                         .HasColumnType("text");
 
@@ -376,6 +512,44 @@ namespace QrAttendanceApi.Infrastructure.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("QrAttendanceApi.Domain.Entities.AttendanceLog", b =>
+                {
+                    b.HasOne("QrAttendanceApi.Domain.Entities.QrSession", "QrSession")
+                        .WithMany()
+                        .HasForeignKey("QrSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QrAttendanceApi.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("QrSession");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("QrAttendanceApi.Domain.Entities.QrSession", b =>
+                {
+                    b.HasOne("QrAttendanceApi.Domain.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QrAttendanceApi.Domain.Entities.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("Department");
                 });
 
             modelBuilder.Entity("QrAttendanceApi.Domain.Entities.User", b =>
