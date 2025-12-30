@@ -2,7 +2,7 @@
 
 namespace QrAttendanceApi.Application.Abstractions
 {
-    public interface ITokenRepository : IRepository<RefreshToken>
+    public interface IQrSessionRepository : IRepository<QrSession>
     {
     }
 }

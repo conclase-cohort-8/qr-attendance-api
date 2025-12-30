@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using QrAttendanceApi.Application.Abstractions;
 using QrAttendanceApi.Application.Responses;
 using QrAttendanceApi.Domain.Entities;
@@ -19,7 +20,7 @@ namespace QrAttendanceApi.Core.Extensions
                 await app.SeedAsync(logger);
             }
             app.UseSwaggerDocsUI();
-
+            app.UseCors("CorsPolicy");
             app.UseHttpsRedirection();
 
             app.UseAuthentication();
@@ -53,8 +54,8 @@ namespace QrAttendanceApi.Core.Extensions
                     var user = await userManager.FindByEmailAsync(email);
                     if (user == null)
                     {
-                        var department = (await repository.Department.GetAll())
-                            .FirstOrDefault();
+                        var department = await repository.Department.Get(d => !d.IsDeprecated)
+                            .FirstOrDefaultAsync();
                         if(department == null)
                         {
                             department = new Department
@@ -62,6 +63,7 @@ namespace QrAttendanceApi.Core.Extensions
                                 Name = ".NET"
                             };
                             await repository.Department.AddAsync(department);
+                            await repository.SaveAsync();
                         }
                         logger.LogInformation("Existing system user not found. Inserting...");
                         user = new User

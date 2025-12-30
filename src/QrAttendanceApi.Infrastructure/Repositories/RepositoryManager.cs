@@ -8,6 +8,8 @@ namespace QrAttendanceApi.Infrastructure.Repositories
         private readonly AppDbContext _dbContext;
         private readonly Lazy<ITokenRepository> _tokenRepository;
         private readonly Lazy<IDepartmentRepository> _departmentRepository;
+        private readonly Lazy<IQrSessionRepository> _qrSessionRepository;
+        private readonly Lazy<IAttendanceRepository> _attendanceRepository;
 
         public RepositoryManager(AppDbContext dbContext)
         {
@@ -17,9 +19,15 @@ namespace QrAttendanceApi.Infrastructure.Repositories
                 => new TokenRepository(dbContext));
             _departmentRepository = new Lazy<IDepartmentRepository>(()
                 => new DepartmentRepository(dbContext));
+            _qrSessionRepository = new Lazy<IQrSessionRepository>(() 
+                => new QrSessionRepository(dbContext));
+            _attendanceRepository = new Lazy<IAttendanceRepository>(() 
+                => new AttendanceRepository(dbContext));
         }
         public ITokenRepository Token => _tokenRepository.Value;
         public IDepartmentRepository Department => _departmentRepository.Value;
+        public IQrSessionRepository QrSession => _qrSessionRepository.Value;
+        public IAttendanceRepository Attendance => _attendanceRepository.Value;
 
         public async Task SaveAsync(CancellationToken cancellationToken = default)
         {

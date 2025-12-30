@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <style>
+        body {
+            background-color: #f5f7fa;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 30px auto;
+            background-color: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .otp-box {
+            display: inline-block;
+            background-color: #ddd;
+            color: #222;
+            font-weight: bold;
+            font-size: 20px;
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <p>Hello {{first_name}},</p>
+            <p>
+                You’ve been added as a member of <strong>SAS</strong>, and your account is ready.
+            </p>
+            <p>
+                Here are your login details:
+                <ul>
+                    <li><strong>Email:</strong> {{email}}</li>
+                    <li><strong>Temporary Password:</strong> {{password}}</li>
+                </ul>
+            </p>
+            <p>
+                For your security, this password is temporary. Please log in and <strong>change it immediately</strong>.<br/>
+                If you weren’t expecting this email, or if you run into any issues, just reach out to the admin.<br/>
+                The <strong>SAS</strong> Team
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using QrAttendanceApi.Application.Abstractions;
+﻿using QrAttendanceApi.Application.Abstractions;
 using QrAttendanceApi.Domain.Entities;
 using QrAttendanceApi.Infrastructure.Persistence;
 
@@ -13,22 +12,6 @@ namespace QrAttendanceApi.Infrastructure.Repositories
             base(dbContext)
         {
             this.dbContext = dbContext;
-        }
-
-        public async Task AddAsync(Department department, bool save = true)
-        {
-            await InsertAsync(department);
-            if (save)
-            {
-                await dbContext.SaveChangesAsync();
-            }
-        }
-
-        public async Task<List<Department>> GetAll()
-        {
-            return await GetAsQueryable(d => !d.IsDeprecated)
-                .OrderBy(d => d.Name)
-                .ToListAsync();
         }
     }
 }
