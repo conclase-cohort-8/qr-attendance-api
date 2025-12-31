@@ -33,7 +33,7 @@ namespace QrAttendanceApi.Infrastructure.ExternalServices
             throw new NotImplementedException();
         }
 
-        public bool TryValidateQrToken(string token, out string reason)
+        public bool TryValidateQrToken(string token, Guid sessionId, out string reason)
         {
             throw new NotImplementedException();
         }
@@ -41,7 +41,7 @@ namespace QrAttendanceApi.Infrastructure.ExternalServices
         public string CreateAccessToken(User user, string[] roles)
         {
             var claims = GetClaims(user, roles);
-            var creds = GetSigningCredentials();
+            var creds = GetSigningCredentials(_settings.Key);
             var token = GetSecurityToken(claims, creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
@@ -84,9 +84,9 @@ namespace QrAttendanceApi.Infrastructure.ExternalServices
             return claims;
         }
 
-        private SigningCredentials GetSigningCredentials()
+        private SigningCredentials GetSigningCredentials(string secretKey)
         {
-            var key = Encoding.UTF8.GetBytes(_settings.Key);
+            var key = Encoding.UTF8.GetBytes(secretKey);
             var secret = new SymmetricSecurityKey(key);
             return new SigningCredentials(secret, SecurityAlgorithms.HmacSha256);
         }
