@@ -5,6 +5,6 @@ namespace QrAttendanceApi.Application.Services.Abstractions
 {
     public interface IAttendanceService
     {
-        Task<ApiBaseResponse> MarkAttendance(string userId, SessionAttendanceCommand command);
+        Task<ApiBaseResponse> MarkAttendance(string? userId, Guid sessionId, SessionAttendanceCommand command);
     }
 }

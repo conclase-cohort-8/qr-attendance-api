@@ -13,6 +13,7 @@ namespace QrAttendanceApi.Application.Services
         private readonly Lazy<IAccountService> _accountService;
         private readonly Lazy<IDepartmentService> _departmentService;
         private readonly Lazy<IQrSessionService> _qrSessionService;
+        private readonly Lazy<IAttendanceService> _attendanceService;
 
         public ServiceManager(UserManager<User> userManager, 
                               SignInManager<User> signInManager,
@@ -25,11 +26,14 @@ namespace QrAttendanceApi.Application.Services
             _departmentService = new Lazy<IDepartmentService>(()
                 => new DepartmentService(repository));
             _qrSessionService = new Lazy<IQrSessionService>(()
-                => new QrSessionService(repository));
+                => new QrSessionService(repository, userManager, tokenService));
+            _attendanceService = new Lazy<IAttendanceService>(() 
+                => new AttendanceService(repository, tokenService, userManager));
         }
 
         public IAccountService Account => _accountService.Value;
         public IDepartmentService Department => _departmentService.Value;
         public IQrSessionService QrSession => _qrSessionService.Value;
+        public IAttendanceService Attendance => _attendanceService.Value;
     }
 }

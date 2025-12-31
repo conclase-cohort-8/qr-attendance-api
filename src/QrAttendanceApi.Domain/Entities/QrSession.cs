@@ -15,7 +15,7 @@ namespace QrAttendanceApi.Domain.Entities
         [Required]
         public DateTime EndsAt { get; set; }
         [Range(60, int.MaxValue)]
-        public int RegenerateTokenInSeconds { get; set; }
+        public int RegenerateTokenInSeconds { get; set; } = 60;
         public bool IsActive { get; set; } = true;
         [Required]
         [EnumDataType(typeof(QrSessionType))]
