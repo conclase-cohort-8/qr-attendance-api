@@ -4,7 +4,6 @@ using QrAttendanceApi.Application.Commands.Accounts;
 using QrAttendanceApi.Application.DTOs;
 using QrAttendanceApi.Application.Services.Abstractions;
 using QrAttendanceApi.Core.Controllers.Extensions;
-using QrAttendanceApi.Domain.Entities;
 
 namespace QrAttendanceApi.Core.Controllers.V1
 {
@@ -26,7 +25,7 @@ namespace QrAttendanceApi.Core.Controllers.V1
        /// <param name="command"></param>
        /// <returns></returns>
         [HttpPost("login")]
-        [ProducesResponseType(typeof(TokenDto), 200)]
+        [ProducesResponseType(typeof(LoginTokensDto), 200)]
         public async Task<IActionResult> LoginAsync(LoginCommand command)
         {
             var result = await _service.Account.LoginAsync(command);
@@ -35,7 +34,7 @@ namespace QrAttendanceApi.Core.Controllers.V1
                 return ProcessError(result);
             }
 
-            return Ok(result.GetResult<TokenDto>());
+            return Ok(result.GetResult<LoginTokensDto>());
         }
 
         /// <summary>
@@ -62,7 +61,7 @@ namespace QrAttendanceApi.Core.Controllers.V1
         /// <param name="command"></param>
         /// <returns></returns>
         [HttpPut("refresh")]
-        [ProducesResponseType(typeof(TokenDto), 200)]
+        [ProducesResponseType(typeof(LoginTokensDto), 200)]
         public async Task<IActionResult> RefreshAsync(RefreshTokenCommand command)
         {
             var response = await _service.Account.RefreshAsync(command);
@@ -71,7 +70,7 @@ namespace QrAttendanceApi.Core.Controllers.V1
                 return ProcessError(response);
             }
 
-            return Ok(response.GetResult<TokenDto>());
+            return Ok(response.GetResult<LoginTokensDto>());
         }
 
         [HttpPost("bulk-upload")]

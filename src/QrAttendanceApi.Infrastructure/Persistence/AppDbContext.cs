@@ -9,6 +9,9 @@ namespace QrAttendanceApi.Infrastructure.Persistence
     {
         public DbSet<Department> Departments { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<QrSession> QrSessions { get; set; }
+        public DbSet<AttendanceLog> AttendanceLogs { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : 
             base(options)

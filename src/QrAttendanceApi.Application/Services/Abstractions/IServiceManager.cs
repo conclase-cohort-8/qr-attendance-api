@@ -4,5 +4,7 @@
     {
         IAccountService Account {  get; }
         IDepartmentService Department { get; }
+        IQrSessionService QrSession { get; }
+        IAttendanceService Attendance { get; }
     }
 }
