@@ -80,7 +80,7 @@ namespace QrAttendanceApi.Application.Services
             var validator = new LoginCommandValidator().Validate(command);
             if (!validator.IsValid)
             {
-                return new BadRequestResponse(validator.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid inputs");
+                return new BadRequestResponse(validator.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input");
             }
 
             var user = await _userManager.FindByEmailAsync(command.Email);

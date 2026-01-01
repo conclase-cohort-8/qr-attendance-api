@@ -63,27 +63,40 @@ namespace QrAttendanceApi.Core.Extensions
 
         private static IServiceCollection ConfigureDbContext(this IServiceCollection services, IConfiguration configuration)
         {
-            var connectionString = configuration.GetConnectionString("Default") ?? 
+            var connectionString = configuration.GetConnectionString("DefaultConnection") ??
                 throw new ArgumentNullException(nameof(configuration));
 
-            services.AddDbContext<AppDbContext>(opt => 
+            services.AddDbContext<AppDbContext>(opt =>
                 opt.UseNpgsql(connectionString, m => m.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)));
 
             services.AddIdentity<User, IdentityRole>(opt =>
-            {
-                opt.Password.RequireNonAlphanumeric = true;
-                opt.Password.RequireDigit = true;
-                opt.Password.RequireLowercase = true;
-                opt.Password.RequireUppercase = true;
-                opt.Password.RequiredLength = 8;
+                {
+                    opt.Password.RequireNonAlphanumeric = true;
+                    opt.Password.RequireDigit = true;
+                    opt.Password.RequireLowercase = true;
+                    opt.Password.RequireUppercase = true;
+                    opt.Password.RequiredLength = 8;
 
-                opt.User.RequireUniqueEmail = true;
-                opt.SignIn.RequireConfirmedEmail = true;
-            }).AddEntityFrameworkStores<AppDbContext>()
-            .AddDefaultTokenProviders();
+                    opt.User.RequireUniqueEmail = true;
+                    opt.SignIn.RequireConfirmedEmail = true;
+                }).AddEntityFrameworkStores<AppDbContext>()
+                .AddDefaultTokenProviders();
 
             return services;
         }
+        //    {
+        //        opt.Password.RequireNonAlphanumeric = true;
+        //        opt.Password.RequireDigit = true;
+        //        opt.Password.RequireLowercase = true;
+        //        opt.Password.RequireUppercase = true;
+        //        opt.Password.RequiredLength = 0;
+
+        //        opt.User.RequireUniqueEmail = true;
+        //        opt.SignIn.RequireConfirmedEmail = true;
+        //    }).AddEntityFrameworkStores<AppDbContext>();
+
+        //    return services;
+        //}
 
         private static IServiceCollection ConfigureVersioning(this IServiceCollection services)
         {
@@ -175,19 +188,29 @@ namespace QrAttendanceApi.Core.Extensions
         }
 
         private static IServiceCollection ConfigureJwt(this IServiceCollection services, IConfiguration configuration)
+        //{
+        //    var section = configuration.GetSection("Jwt");
+        //    services.Configure<JwtSettings>(section);
+
+        //    var settings = section.Get<JwtSettings>() ?? 
+        //        throw new ArgumentNullException(nameof(section));
+
+        //    services.AddAuthentication(opt =>
         {
             var section = configuration.GetSection("Jwt");
+
+            var settings = section.Get<JwtSettings>()
+                ?? throw new InvalidOperationException("Jwt section is missing in appsettings.json");
+
             services.Configure<JwtSettings>(section);
-
-            var settings = section.Get<JwtSettings>() ?? 
-                throw new ArgumentNullException(nameof(section));
-
-            services.AddAuthentication(opt =>
-            {
-                opt.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                opt.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(opt =>
-            {
+            //{
+            //    opt.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            //    opt.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            //}).AddJwtBearer(opt =>
+            services
+    .AddAuthentication()
+    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, opt =>
+    {
                 opt.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -218,7 +241,7 @@ namespace QrAttendanceApi.Core.Extensions
                     .UseRecommendedSerializerSettings()
                     .UsePostgreSqlStorage(opt =>
                     {
-                        opt.UseNpgsqlConnection(configuration.GetConnectionString("Default"));
+                        opt.UseNpgsqlConnection(configuration.GetConnectionString("DefaultConnection"));
                     }, 
                     new PostgreSqlStorageOptions
                     {

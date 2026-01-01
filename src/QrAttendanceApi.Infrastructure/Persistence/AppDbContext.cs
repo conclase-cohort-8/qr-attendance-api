@@ -20,7 +20,7 @@ namespace QrAttendanceApi.Infrastructure.Persistence
         {
             base.OnModelCreating(builder);
 
-            builder.HasDefaultSchema("smart-attendance");
+            builder.HasDefaultSchema("smart_attendance");
 
             builder.ApplyConfiguration(new RolesConfigurations());
         }

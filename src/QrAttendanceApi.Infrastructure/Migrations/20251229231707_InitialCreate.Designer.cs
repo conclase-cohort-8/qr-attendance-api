@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QrAttendanceApi.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using QrAttendanceApi.Infrastructure.Persistence;
 namespace QrAttendanceApi.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251229231707_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,28 +55,28 @@ namespace QrAttendanceApi.Infrastructure.Migrations
                         new
                         {
                             Id = "bef477b0-e65d-4c85-a6f3-8b44e89af17e",
-                            ConcurrencyStamp = "STUDENT_ROLE",
+                            ConcurrencyStamp = "c1f0d0e0-0000-0000-0000-000000000001",
                             Name = "Student",
                             NormalizedName = "STUDENT"
                         },
                         new
                         {
                             Id = "32751251-5533-4004-b248-d8d8ef427ce2",
-                            ConcurrencyStamp = "STAFF_ROLE",
+                            ConcurrencyStamp = "c1f0d0e0-0000-0000-0000-000000000001",
                             Name = "Staff",
                             NormalizedName = "STAFF"
                         },
                         new
                         {
                             Id = "504ea7a6-fb72-43a8-8c1e-628bd4ababd1",
-                            ConcurrencyStamp = "ADMIN_ROLE",
+                            ConcurrencyStamp = "c1f0d0e0-0000-0000-0000-000000000001",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
                             Id = "41de4677-6d68-4854-8262-cbeaa486fe4c",
-                            ConcurrencyStamp = "SUPERADMIN_ROLE",
+                            ConcurrencyStamp = "c1f0d0e0-0000-0000-0000-000000000001",
                             Name = "SuperAdmin",
                             NormalizedName = "SUPERADMIN"
                         });
