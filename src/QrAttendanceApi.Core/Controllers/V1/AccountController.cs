@@ -86,5 +86,41 @@ namespace QrAttendanceApi.Core.Controllers.V1
 
             return Ok(response.GetResult<string>());
         }
+
+        /// <summary>
+        /// Deactivates user accounts
+        /// </summary>
+        /// <param name="UserId"></param>
+        /// <returns></returns>
+        [HttpPatch("{userId}/deactivate")]
+        [Authorize(Roles = "Admin, SuperAdmin")]
+        public async Task<IActionResult> DeactivateAccount([FromRoute] string userId)
+        {
+            var response = await _service.Account.DeactivateAsync(userId);
+            if (!response.Success)
+            {
+                return ProcessError(response);
+            }
+
+            return Ok(response.GetResult<string>());
+        }
+        
+        /// <summary>
+        /// Activates user accounts
+        /// </summary>
+        /// <param name="UserId"></param>
+        /// <returns></returns>
+        [HttpPatch("{userId}/activate")]
+        [Authorize(Roles = "Admin, SuperAdmin")]
+        public async Task<IActionResult> ActivateAccount([FromRoute] string userId)
+        {
+            var response = await _service.Account.ActivateAsync(userId);
+            if (!response.Success)
+            {
+                return ProcessError(response);
+            }
+
+            return Ok(response.GetResult<string>());
+        }
     }
 }

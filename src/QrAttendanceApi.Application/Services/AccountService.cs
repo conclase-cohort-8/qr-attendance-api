@@ -9,8 +9,10 @@ using Microsoft.Extensions.Options;
 using QrAttendanceApi.Application.Abstractions;
 using QrAttendanceApi.Application.Abstractions.Externals;
 using QrAttendanceApi.Application.Commands.Accounts;
+using QrAttendanceApi.Application.Commands.Users;
 using QrAttendanceApi.Application.DTOs;
 using QrAttendanceApi.Application.Helpers;
+using QrAttendanceApi.Application.Queries;
 using QrAttendanceApi.Application.Responses;
 using QrAttendanceApi.Application.Services.Abstractions;
 using QrAttendanceApi.Application.Settings;
@@ -275,6 +277,90 @@ namespace QrAttendanceApi.Application.Services
                 }
             }
         }
+
+        public async Task<ApiBaseResponse> UpdateDetailsAsync(string? userId, UserUpdateCommand command)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return new BadRequestResponse("Access denied! Invalid user id");
+            }
+
+            var validator = new UserUpdateCommandValidator().Validate(command);
+            if (!validator.IsValid)
+            {
+                return new BadRequestResponse(validator.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input");
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if(user == null)
+            {
+                return new NotFoundResponse("User record not found");
+            }
+
+            var department = await _repository.Department
+                .FirstOrDefault(d => d.Id == command.DepartmentId);
+            if(department == null)
+            {
+                return new NotFoundResponse("Department record not found");
+            }
+
+            user.FullName = StringHelpers.ConvertEachWordToUppercase(command.FullName);
+            user.DepartmentId = department.Id;
+            user.PhoneNumber = command.PhoneNumber;
+            await _userManager.UpdateAsync(user);
+
+            return new OkResponse<string>("User info successfully updated");
+        }
+
+        public async Task<ApiBaseResponse> DeactivateAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return new NotFoundResponse("User record not found");
+            }
+
+            if (!user.IsActive)
+            {
+                return new ConflictResponse("User is already deactivated.");
+            }
+
+            user.IsActive = false;
+            await _userManager.UpdateAsync(user);
+            return new OkResponse<string>("User account successfully deactivated");
+        }
+
+        public async Task<ApiBaseResponse> ActivateAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return new NotFoundResponse("User record not found");
+            }
+
+            if (user.IsActive)
+            {
+                return new ConflictResponse("User is already active");
+            }
+
+            user.IsActive = true;
+            await _userManager.UpdateAsync(user);
+            return new OkResponse<string>("User account successfully activated");
+        }
+
+        public async Task<ApiBaseResponse> GetPagedUsers(UserPagedQuery query)
+        {
+            var userQuery = await _userManager.Users
+                .OrderBy(u => u.Id)
+                .Include(u => u.Department)
+                .Filter(query)
+                .MapToDto()
+                .Paginate(query.Page, query.PageSize);
+
+
+            return new OkResponse<PagedResponse<UserDto>>(userQuery);
+        }
+
         #region Private Methods
         private ApiBaseResponse ValidateFile(IFormFile file)
         {

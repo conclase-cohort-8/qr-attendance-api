@@ -1,8 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
-using QrAttendanceApi.Application.Abstractions;
+﻿using QrAttendanceApi.Application.Abstractions;
 using QrAttendanceApi.Domain.Entities;
 using QrAttendanceApi.Infrastructure.Persistence;
-using System.Linq.Expressions;
 
 namespace QrAttendanceApi.Infrastructure.Repositories
 {
