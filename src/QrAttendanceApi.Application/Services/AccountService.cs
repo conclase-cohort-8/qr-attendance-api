@@ -1,5 +1,4 @@
 ﻿using ClosedXML.Excel;
-using DocumentFormat.OpenXml.Spreadsheet;
 using Hangfire;
 using Hangfire.Console;
 using Hangfire.Server;
@@ -276,7 +275,6 @@ namespace QrAttendanceApi.Application.Services
                 }
             }
         }
-
         #region Private Methods
         private ApiBaseResponse ValidateFile(IFormFile file)
         {
