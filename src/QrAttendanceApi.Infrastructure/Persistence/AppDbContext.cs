@@ -17,6 +17,7 @@ namespace QrAttendanceApi.Infrastructure.Persistence
             base(options)
         {
             
+
         }
 
         protected override void OnModelCreating(ModelBuilder builder)

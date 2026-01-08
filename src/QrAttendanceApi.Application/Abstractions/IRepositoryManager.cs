@@ -7,6 +7,8 @@
         IQrSessionRepository QrSession { get; }
         IAttendanceRepository Attendance { get; }
 
+        IAuditRepository Audit { get; }
+
         Task SaveAsync(CancellationToken cancellationToken = default!);
     }
 }

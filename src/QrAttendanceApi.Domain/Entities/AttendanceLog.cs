@@ -15,5 +15,8 @@ namespace QrAttendanceApi.Domain.Entities
 
         public Guid QrSessionId { get; set; }
         public QrSession? QrSession { get; set; }
+
+        public bool IsDeleted { get; set; } = false;
+
     }
 }

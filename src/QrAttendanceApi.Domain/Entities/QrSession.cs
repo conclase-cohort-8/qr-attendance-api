@@ -26,5 +26,6 @@ namespace QrAttendanceApi.Domain.Entities
         public Department? Department { get; set; }
         public string CreatedById { get; set; } = string.Empty;
         public User? CreatedBy { get; set; }
+        public bool IsDeleted { get; set; }
     }
 }

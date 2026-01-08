@@ -100,7 +100,7 @@ namespace QrAttendanceApi.Core.Extensions
 
         private static IServiceCollection ConfigureDbContext(this IServiceCollection services, IConfiguration configuration)
         {
-            var connectionString = configuration.GetConnectionString("DefaultConnection") ??
+            var connectionString = configuration.GetConnectionString("Default") ??
                 throw new ArgumentNullException(nameof(configuration));
 
             services.AddDbContext<AppDbContext>(opt =>
@@ -121,19 +121,6 @@ namespace QrAttendanceApi.Core.Extensions
 
             return services;
         }
-        //    {
-        //        opt.Password.RequireNonAlphanumeric = true;
-        //        opt.Password.RequireDigit = true;
-        //        opt.Password.RequireLowercase = true;
-        //        opt.Password.RequireUppercase = true;
-        //        opt.Password.RequiredLength = 0;
-
-        //        opt.User.RequireUniqueEmail = true;
-        //        opt.SignIn.RequireConfirmedEmail = true;
-        //    }).AddEntityFrameworkStores<AppDbContext>();
-
-        //    return services;
-        //}
 
         private static IServiceCollection ConfigureVersioning(this IServiceCollection services)
         {
@@ -278,7 +265,7 @@ namespace QrAttendanceApi.Core.Extensions
                     .UseRecommendedSerializerSettings()
                     .UsePostgreSqlStorage(opt =>
                     {
-                        opt.UseNpgsqlConnection(configuration.GetConnectionString("DefaultConnection"));
+                        opt.UseNpgsqlConnection(configuration.GetConnectionString("Default"));
                     }, 
                     new PostgreSqlStorageOptions
                     {
