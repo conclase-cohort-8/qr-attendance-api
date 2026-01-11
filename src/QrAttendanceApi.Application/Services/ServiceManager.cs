@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using QrAttendanceApi.Application.Abstractions;
 using QrAttendanceApi.Application.Abstractions.Externals;
@@ -20,10 +21,12 @@ namespace QrAttendanceApi.Application.Services
                               IOptions<JwtSettings> options,
                               IRepositoryManager repository,
                               ITokenService tokenService,
-                              IEmailService emailService                          )
+                              IEmailService emailService,
+                              IHttpContextAccessor httpContextAccessor,
+                              IUploadService uploadService)
         {
             _accountService = new Lazy<IAccountService>(() 
-                => new AccountService(userManager, signInManager, options, repository, tokenService,emailService));
+                => new AccountService(userManager, signInManager, options, repository, tokenService,emailService,httpContextAccessor,uploadService));
             _departmentService = new Lazy<IDepartmentService>(()
                 => new DepartmentService(repository));
             _qrSessionService = new Lazy<IQrSessionService>(()

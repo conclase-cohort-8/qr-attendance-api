@@ -36,5 +36,18 @@ namespace QrAttendanceApi.Infrastructure.ExternalServices.Uploads
                  (true, response.SecureUrl.ToString(), response.PublicId) :
                  (false, string.Empty, string.Empty);
         }
+
+        public async Task<bool> DeleteAsync(string publicId, ResourceType type)
+        {
+            var deleteParam = new DeletionParams(publicId)
+            {
+                ResourceType = type
+            };
+
+            var response = await _cloudinary.DestroyAsync(deleteParam);
+            return response != null &&
+                response.StatusCode == System.Net.HttpStatusCode.OK &&
+                response.Result.ToLower() == "ok";
+        }
     }
 }

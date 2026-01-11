@@ -18,6 +18,7 @@ using QrAttendanceApi.Application.Settings;
 using QrAttendanceApi.Application.Validations;
 using QrAttendanceApi.Domain.Entities;
 using QrAttendanceApi.Domain.Enums;
+using System.Security.Claims;
 
 namespace QrAttendanceApi.Application.Services
 {
@@ -30,21 +31,27 @@ namespace QrAttendanceApi.Application.Services
         private readonly IRepositoryManager _repository;
         private readonly ITokenService _tokenService;
         private readonly IEmailService _emailService;
+        private readonly IUploadService _uploadService;
         private readonly JwtSettings _settings;
+        private readonly ClaimsPrincipal? _user;
 
         public AccountService(UserManager<User> userManager,
                               SignInManager<User> signInManager,
                               IOptions<JwtSettings> options,
                               IRepositoryManager repository,
                               ITokenService tokenService,
-                              IEmailService emailService)
+                              IEmailService emailService,
+                              IHttpContextAccessor contextAccessor,
+                              IUploadService uploadService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _repository = repository;
             _tokenService = tokenService;
             _emailService = emailService;
+            _uploadService = uploadService;
             _settings = options.Value;
+            _user = contextAccessor.HttpContext?.User;
         }
 
         public async Task<ApiBaseResponse> RegisterAsync(RegisterCommand command)
@@ -149,6 +156,38 @@ namespace QrAttendanceApi.Application.Services
             var roles = await _userManager.GetRolesAsync(user);
             var newAccessToken = _tokenService.CreateAccessToken(user, roles.ToArray());
             return new OkResponse<LoginTokensDto>(new LoginTokensDto(newAccessToken, command.RefreshToken));
+        }
+
+        public async Task<ApiBaseResponse> UploadProfileImage(IFormFile file)
+        {
+            var validationResult = ValidateFile(file);
+            if (!validationResult.Success)
+            {
+                return validationResult;
+            }
+            var email = _user?.FindFirstValue(ClaimTypes.Name);
+            if (string.IsNullOrEmpty(email))
+            {
+                return new UnauthorizedResponse("Access denied");
+            }
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                return new NotFoundResponse("User not found");
+            }
+            using var stream = file.OpenReadStream();
+            stream.Position = 0;
+            var uploadResult = await _uploadService.UploadImageAsync(user.Id.Replace("-", ""), file.FileName, stream);
+            if (!uploadResult.Success)
+            {
+                return new BadRequestResponse("Profile image upload failed");
+            }
+
+            user.PhotoUrl = uploadResult.Url;
+            user.PhotoPublicId = uploadResult.PublicId;
+            await _userManager.UpdateAsync(user);
+            return new ApiBaseResponse( true ,200, "Profile picture successfully uploaded");
+
         }
 
         public async Task<ApiBaseResponse> LoadUserDataAsync(IFormFile file)

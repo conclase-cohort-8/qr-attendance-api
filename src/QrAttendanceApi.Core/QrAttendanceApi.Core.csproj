@@ -33,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\QrAttendanceApi.Application\QrAttendanceApi.Application.csproj" />
     <ProjectReference Include="..\QrAttendanceApi.Domain\QrAttendanceApi.Domain.csproj" />
     <ProjectReference Include="..\QrAttendanceApi.Infrastructure\QrAttendanceApi.Infrastructure.csproj" />
   </ItemGroup>
