@@ -1,5 +1,4 @@
-﻿using QrAttendanceApi.Application.DTOs;
-using QrAttendanceApi.Application.Responses;
+﻿using QrAttendanceApi.Application.Responses;
 
 namespace QrAttendanceApi.Application.Services.Abstractions
 {

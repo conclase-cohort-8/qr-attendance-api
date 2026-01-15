@@ -1,10 +1,8 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QrAttendanceApi.Application.Abstractions;
 using QrAttendanceApi.Application.DTOs;
 using QrAttendanceApi.Application.Responses;
 using QrAttendanceApi.Application.Services.Abstractions;
-using QrAttendanceApi.Domain.Entities;
 using QrAttendanceApi.Domain.Enums;
 
 namespace QrAttendanceApi.Application.Services
@@ -12,12 +10,10 @@ namespace QrAttendanceApi.Application.Services
     public class AnalyticsService : IAnalyticsService
     {
         private readonly IRepositoryManager _repository;
-        private readonly UserManager<User> _userManager;
 
-        public AnalyticsService(IRepositoryManager repository , UserManager<User> userManager)
+        public AnalyticsService(IRepositoryManager repository)
         {
             _repository = repository;
-            _userManager = userManager;
         }
 
         public async Task<ApiBaseResponse> GetAttendanceTrendsAsync(DateTime from, DateTime to)

@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using QrAttendanceApi.Application.DTOs;
-using QrAttendanceApi.Application.Responses;
 using QrAttendanceApi.Application.Services.Abstractions;
 using QrAttendanceApi.Core.Controllers.Extensions;
 
@@ -44,7 +42,7 @@ namespace QrAttendanceApi.Core.Controllers.V1
         /// </summary>
         /// <param name="command"></param>
         /// <returns></returns>    
-        [HttpPost("dashboard/departments")]
+        [HttpGet("dashboard/departments")]
         public async Task<IActionResult> GetDepartmentBreakdown([FromQuery] DateTime date)
         {
             var response = await _service.Analytics.GetDepartmentBreakdownAsync(date);
@@ -60,7 +58,7 @@ namespace QrAttendanceApi.Core.Controllers.V1
         /// </summary>
         /// <param name="command"></param>
         /// <returns></returns>    
-        [HttpPost("trends")]
+        [HttpGet("trends")]
         public async Task <IActionResult> GetAttendanceTrends([FromQuery] DateTime from , [FromQuery] DateTime to)
         {
             var response = await _service.Analytics.GetAttendanceTrendsAsync(from, to);

@@ -21,8 +21,7 @@ namespace QrAttendanceApi.Application.Services
                               IOptions<JwtSettings> options,
                               IRepositoryManager repository,
                               IEmailService emailService,
-                              ITokenService tokenService,
-                              IAnalyticsService analyticsService)
+                              ITokenService tokenService)
         {
             _accountService = new Lazy<IAccountService>(() 
                 => new AccountService(userManager, signInManager, options, repository, tokenService,emailService));
@@ -33,7 +32,7 @@ namespace QrAttendanceApi.Application.Services
             _attendanceService = new Lazy<IAttendanceService>(() 
                 => new AttendanceService(repository, tokenService, userManager));
             _analyticsService = new Lazy <IAnalyticsService>(() 
-                => new AnalyticsService(repository , userManager));
+                => new AnalyticsService(repository));
         }
 
         public IAccountService Account => _accountService.Value;
