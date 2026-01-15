@@ -55,24 +55,12 @@ namespace QrAttendanceApi.Application.Services
             var late = await attendanceQuery.CountAsync(a => a.Status == AttendanceStatus.Late);
             var absent = await attendanceQuery.CountAsync(a => a.Status == AttendanceStatus.Absent);
 
-            var presentAttendances = attendanceQuery.Where(a => a.Status == AttendanceStatus.Present && a.User != null)
-                                                    .Select(a => a.User!)
+            var presentUserIds = attendanceQuery.Where(a => a.Status == AttendanceStatus.Present)
+                                                    .Select(a => a.UserId)
                                                     .Distinct()
                                                     .ToList();
 
-            int staffPresent = 0;
-            int studentsPresent = 0;
-
-            foreach (var user in presentAttendances)
-            {
-                var roles = await _userManager.GetRolesAsync(user);
-
-                if (roles.Contains(Roles.Staff.ToString())) staffPresent++;
-
-                else if (roles.Contains(Roles.Student.ToString())) studentsPresent++;
-            }
-
-
+            var userRoles = await _repository.UserRoles.GetUserRoles(presentUserIds);
             var dto = new DashboardSummaryDto
             {
                 Date = start,
@@ -80,8 +68,8 @@ namespace QrAttendanceApi.Application.Services
                 Present = present,
                 Late = late,
                 Absent = absent,
-                StaffPresent = staffPresent,
-                StudentsPresent = studentsPresent
+                StaffPresent = userRoles.Count(u => u.RoleName == Roles.Staff.ToString()),
+                StudentsPresent = userRoles.Count(u => u.RoleName == Roles.Student.ToString())
             };
 
             return new OkResponse<DashboardSummaryDto>(dto); 

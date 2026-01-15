@@ -20,11 +20,12 @@ namespace QrAttendanceApi.Application.Services
                               SignInManager<User> signInManager,
                               IOptions<JwtSettings> options,
                               IRepositoryManager repository,
+                              IEmailService emailService,
                               ITokenService tokenService,
                               IAnalyticsService analyticsService)
         {
             _accountService = new Lazy<IAccountService>(() 
-                => new AccountService(userManager, signInManager, options, repository, tokenService));
+                => new AccountService(userManager, signInManager, options, repository, tokenService,emailService));
             _departmentService = new Lazy<IDepartmentService>(()
                 => new DepartmentService(repository));
             _qrSessionService = new Lazy<IQrSessionService>(()
