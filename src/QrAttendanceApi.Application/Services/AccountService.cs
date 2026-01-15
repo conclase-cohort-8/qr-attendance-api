@@ -28,18 +28,21 @@ namespace QrAttendanceApi.Application.Services
         private readonly SignInManager<User> _signInManager;
         private readonly IRepositoryManager _repository;
         private readonly ITokenService _tokenService;
+        private readonly IEmailService _emailService;
         private readonly JwtSettings _settings;
 
         public AccountService(UserManager<User> userManager,
                               SignInManager<User> signInManager,
                               IOptions<JwtSettings> options,
                               IRepositoryManager repository,
-                              ITokenService tokenService)
+                              ITokenService tokenService,
+                              IEmailService emailService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _repository = repository;
             _tokenService = tokenService;
+            _emailService = emailService;
             _settings = options.Value;
         }
 
@@ -238,8 +241,27 @@ namespace QrAttendanceApi.Application.Services
                         if (response.Success)
                         {
                             //TODO: Send email to the users here informing them of their addition to the system.
+                            try
+                            {
+                            var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "user-addition-email.html");
+                            var template = await File.ReadAllTextAsync(templatePath);
+                            var emailBody = template
+                                            .Replace("{{FullName}}", payload.FullName)
+                                            .Replace("{{Email}}", payload.Email)
+                                            .Replace("{{Password}}", payload.Password);
+
+                            await _emailService.SendAsync(
+                                payload.Email,
+                                emailBody,
+                                "Welcome to QR Attendance System"
+                            );
                             //You're expected to send them an email. User the user-addition-email.html template in the wwwroot
                             context.WriteLine($"User, {payload.FullName} successfully registered!");
+                            }
+                            catch (Exception ex)
+                            {
+                                context.WriteLine($"User registered but email failed: {ex.Message}");
+                            }
                         }
                         else
                         {
@@ -253,7 +275,6 @@ namespace QrAttendanceApi.Application.Services
                 }
             }
         }
-
         #region Private Methods
         private ApiBaseResponse ValidateFile(IFormFile file)
         {

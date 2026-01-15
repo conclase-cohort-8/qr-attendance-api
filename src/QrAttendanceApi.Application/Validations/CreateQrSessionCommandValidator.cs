@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using QrAttendanceApi.Application.Commands.QRs;
+using QrAttendanceApi.Application.Helpers;
 
 namespace QrAttendanceApi.Application.Validations
 {
@@ -16,12 +17,7 @@ namespace QrAttendanceApi.Application.Validations
             RuleFor(s => s.Description)
                 .NotEmpty().WithMessage("Session description is a required field.");
             RuleFor(s => s)
-                .Must(args => VaidDate(args.StartTime));
-        }
-
-        private bool VaidDate(DateTime date)
-        {
-            return date > DateTime.UtcNow;
+                .Must(args => ValidatorHelper.VaidDate(args.StartTime));
         }
     }
 }
