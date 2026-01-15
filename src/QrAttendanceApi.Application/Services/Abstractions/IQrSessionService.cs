@@ -5,6 +5,7 @@ namespace QrAttendanceApi.Application.Services.Abstractions
 {
     public interface IQrSessionService
     {
-        Task<ApiBaseResponse> Create(string userId, CreateQrSessionCommand command);
+        Task<ApiBaseResponse> Create(string? userId, CreateQrSessionCommand command);
+        Task<ApiBaseResponse> GenerateQrToken(string? userId, Guid sessionId);
     }
 }
