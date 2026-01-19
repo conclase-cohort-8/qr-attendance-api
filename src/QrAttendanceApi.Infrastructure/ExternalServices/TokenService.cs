@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Options;
+﻿using CloudinaryDotNet.Actions;
+using DocumentFormat.OpenXml.Bibliography;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using QrAttendanceApi.Application.Abstractions;
 using QrAttendanceApi.Application.Abstractions.Externals;
@@ -30,13 +32,58 @@ namespace QrAttendanceApi.Infrastructure.ExternalServices
 
         public string GenerateQrToken(Guid sessionId, int ttlSeconds = 60)
         {
-            throw new NotImplementedException();
+            var now = DateTime.UtcNow;
+            var claims = new List<Claim>
+            {
+                new Claim("sid", sessionId.ToString()),
+                new Claim("lid", Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Sub,"session-qr"),
+                new Claim(JwtRegisteredClaimNames.Iat, EpochTime.GetIntDate(now).ToString(),
+                 ClaimValueTypes.Integer64)
+            };
+            var token = new JwtSecurityToken(
+                issuer: "SmartAttendanceSercvice",
+                audience: "QrSessionAttendace",
+                claims: claims,
+                notBefore: now,
+                expires: now.AddSeconds(ttlSeconds),
+                signingCredentials: GetSigningCredentials(_settings.QrSecret)
+
+                );
+
+            return _handler.WriteToken(token);
         }
 
         public bool TryValidateQrToken(string token, Guid sessionId, out string reason)
         {
-            throw new NotImplementedException();
+            reason = string.Empty;
+            var validationParams = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = "SmartAttendanceService",
+                ValidateAudience = true,
+                ValidAudience = "QrSessionSttendance",
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromSeconds(10),
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.QrSecret)),
+
+            };
+            try
+            {
+                var pricipal = _handler.ValidateToken(token, validationParams, out var str);
+                var sid = pricipal.FindFirst("sid")?.Value;
+                return !string.IsNullOrWhiteSpace(sid) && sid == sessionId.ToString();
+
+
+            }
+            catch (Exception e)
+            {
+                reason = e.Message;
+                return false;
+            }
         }
+                
 
         public string CreateAccessToken(User user, string[] roles)
         {
@@ -46,6 +93,8 @@ namespace QrAttendanceApi.Infrastructure.ExternalServices
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
+
 
         public async Task<string> CreateAndSaveRefreshToken(string userId)
         {

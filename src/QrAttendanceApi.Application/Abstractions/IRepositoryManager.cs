@@ -6,6 +6,7 @@
         IDepartmentRepository Department { get; }
         IQrSessionRepository QrSession { get; }
         IAttendanceRepository Attendance { get; }
+        IUserRoleRepository UserRoles { get; }
 
         Task SaveAsync(CancellationToken cancellationToken = default!);
     }
